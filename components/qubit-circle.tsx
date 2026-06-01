@@ -1,6 +1,6 @@
 'use client';
 
-import { CircleState } from '@/lib/quantum-logic';
+import { type CircleState } from '@/lib/quantum-logic';
 
 interface QubitCircleProps {
   state: CircleState;
