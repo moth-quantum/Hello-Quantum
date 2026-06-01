@@ -1,19 +1,131 @@
 @import "tailwindcss";
 
-:root {
-  --background: #fafafa;
-  --foreground: #171717;
+@theme inline {
+  --color-quantum-blue: #4052B5;
+  --color-quantum-deep: #2D3A8C;
+  --color-quantum-light: #7B8ED8;
+  --color-tile-bg: rgba(139, 159, 210, 0.5);
+  --color-tile-border: rgba(255, 255, 255, 0.3);
+  --font-sans: 'Inter', system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #4052B5;
+  --foreground: #ffffff;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* Dotted noise texture overlay */
+.quantum-bg {
+  background-color: #4052B5;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 8px 8px;
+}
+
+/* Gate button styles */
+.gate-button {
+  width: 56px;
+  height: 56px;
+  background: white;
+  color: #2D3A8C;
+  font-weight: 700;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-out;
+  cursor: pointer;
+  user-select: none;
+}
+
+.gate-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.gate-button:active {
+  transform: scale(0.95);
+}
+
+.gate-button.disabled {
+  background: rgba(123, 142, 216, 0.5);
+  color: rgba(255, 255, 255, 0.5);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.gate-button.disabled:hover {
+  transform: none;
+}
+
+.gate-button.selected {
+  box-shadow: 0 0 0 3px white, 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: scale(1.05);
+}
+
+/* Qubit circle styles */
+.qubit-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2.5px solid white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.qubit-circle.black {
+  background-color: #1a1a2e;
+}
+
+.qubit-circle.white {
+  background-color: white;
+}
+
+.qubit-circle.outline {
+  background-color: transparent;
+}
+
+/* Tile styles */
+.quantum-tile {
+  background: rgba(139, 159, 210, 0.5);
+  backdrop-filter: blur(4px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+/* Connection lines */
+.connection-line {
+  stroke: rgba(255, 255, 255, 0.5);
+  stroke-width: 2;
+  fill: none;
+}
+
+/* Animations */
+@keyframes flip-circle {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.8); }
+  100% { transform: scale(1); }
+}
+
+@keyframes success-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.animate-flip {
+  animation: flip-circle 0.3s ease-in-out;
+}
+
+.animate-success {
+  animation: success-pulse 0.5s ease-in-out 3;
 }
