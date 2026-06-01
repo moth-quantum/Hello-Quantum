@@ -1,19 +1,173 @@
 @import "tailwindcss";
 
-:root {
-  --background: #fafafa;
-  --foreground: #171717;
+@theme inline {
+  --color-quantum-blue: #01488A;
+  --color-quantum-light: #84B1EC;
+  --color-quantum-mid: #2172C8;
+  --color-tile-qubit: rgba(132, 177, 236, 0.7);
+  --color-tile-corr: rgba(33, 114, 200, 0.7);
+  --font-sans: 'Inter', system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #01488A;
+  --foreground: #ffffff;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* Dotted noise texture overlay - matches Hello Quantum aesthetic */
+.quantum-bg {
+  background-color: #01488A;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 6px 6px;
+}
+
+/* Gate button styles */
+.gate-button {
+  min-width: 48px;
+  height: 48px;
+  padding: 4px 8px;
+  background: white;
+  color: #01488A;
+  font-weight: 700;
+  font-size: 14px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease-out;
+  cursor: pointer;
+  user-select: none;
+  border: none;
+}
+
+.gate-button .gate-label {
+  font-size: 9px;
+  font-weight: 500;
+  opacity: 0.7;
+  margin-top: 1px;
+}
+
+.gate-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.gate-button:active {
+  transform: scale(0.95);
+}
+
+.gate-button.disabled {
+  background: rgba(132, 177, 236, 0.4);
+  color: rgba(255, 255, 255, 0.5);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.gate-button.disabled:hover {
+  transform: none;
+}
+
+.gate-button.selected {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(0, 0, 0, 0.25);
+  transform: scale(1.08);
+}
+
+/* Qubit circle styles */
+.qubit-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.qubit-circle.large {
+  width: 44px;
+  height: 44px;
+  border-width: 3px;
+}
+
+.qubit-circle.black {
+  background-color: #0a0a1a;
+}
+
+.qubit-circle.white {
+  background-color: white;
+  border-color: white;
+}
+
+.qubit-circle.grey {
+  background-color: #808080;
+}
+
+.qubit-circle.outline {
+  background-color: transparent;
+}
+
+/* Diamond tile styles - the rotated squares in Hello Quantum */
+.quantum-tile {
+  position: absolute;
+  background: var(--color-tile-qubit);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(45deg);
+  transition: all 0.3s ease;
+}
+
+.quantum-tile.correlation {
+  background: var(--color-tile-corr);
+}
+
+.quantum-tile .tile-content {
+  transform: rotate(-45deg);
+}
+
+/* Connection lines */
+.connection-line {
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 2;
+  fill: none;
+}
+
+/* Animations */
+@keyframes flip-circle {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.7); opacity: 0.5; }
+  100% { transform: scale(1); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+  50% { 
+    box-shadow: 0 0 20px 4px rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-flip {
+  animation: flip-circle 0.3s ease-in-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
