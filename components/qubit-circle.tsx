@@ -1,33 +1,34 @@
-"use client";
+'use client';
 
-import { type QubitValue } from "@/lib/quantum-logic";
+import { CircleState } from '@/lib/quantum-logic';
 
 interface QubitCircleProps {
-  value: QubitValue;
-  size?: "sm" | "md" | "lg";
+  state: CircleState;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
 }
 
-export function QubitCircle({ value, size = "md" }: QubitCircleProps) {
+export function QubitCircle({ state, size = 'md', className = '' }: QubitCircleProps) {
   const sizeClasses = {
-    sm: "w-4 h-4",
-    md: "w-10 h-10",
-    lg: "w-12 h-12",
+    sm: 'w-5 h-5 border-[1.5px]',
+    md: 'w-7 h-7 border-2',
+    lg: 'w-8 h-8 border-2',
   };
 
-  const baseClasses = `${sizeClasses[size]} rounded-full border-2 border-white transition-all duration-300`;
+  const stateClasses = {
+    black: 'bg-[#1a1a2e]',
+    white: 'bg-white',
+    outline: 'bg-transparent',
+  };
 
-  if (value === "filled") {
-    return <div className={`${baseClasses} bg-gray-900`} />;
-  }
-
-  if (value === "empty") {
-    return <div className={`${baseClasses} bg-transparent`} />;
-  }
-
-  // Superposition - half filled effect
   return (
-    <div className={`${baseClasses} overflow-hidden relative`}>
-      <div className="absolute inset-0 bg-gray-900" style={{ clipPath: "inset(0 50% 0 0)" }} />
-    </div>
+    <div
+      className={`
+        rounded-full border-white transition-all duration-300 ease-out
+        ${sizeClasses[size]}
+        ${stateClasses[state]}
+        ${className}
+      `}
+    />
   );
 }
