@@ -58,10 +58,7 @@ const C_BG = "rgb(77,77,158)";
 const C_CELL = "rgba(102,102,191,0.80)";
 const C_CELL_BG = "rgba(71,71,148,0.50)";
 const C_EDGE = "rgba(179,179,255,0.35)";
-const C_CONN = "rgba(255,255,255,0.92)"; // active button cable (thick white)
-const C_CONN_OFF = "rgba(204,204,255,0.22)"; // inactive button cable
-const CW = 6; // cable width when enabled
-const CW_OFF = 3.5; // cable width when disabled
+const CW = 6; // cable width when enabled (CZ animation)
 const C_LBL = "rgb(217,224,255)";
 const C_WIN = "rgb(89,255,140)";
 const C_BTN_ON = "rgb(242,242,255)";
@@ -107,16 +104,6 @@ const CZ_SWAP_PAIRS: [string, string][] = [
   ["XI", "XZ"],
   ["IX", "ZX"],
 ];
-
-const BTN_CONNECTS: Record<string, string[]> = {
-  "0_z": ["XI", "XZ", "XX"],
-  "0_x": ["ZI", "ZZ", "ZX"],
-  "0_h": ["XI", "ZI"],
-  "1_z": ["IX", "ZX", "XX"],
-  "1_x": ["IZ", "ZZ", "XZ"],
-  "1_h": ["IX", "IZ"],
-  both_cz: ["XZ", "ZX"],
-};
 
 type Btn = { gate: string; qkey: string; center: Vec };
 type SwapAnim = { from: Vec; to: Vec; color: string };
@@ -619,47 +606,6 @@ export function createGame(canvas: HTMLCanvasElement, opts: { onExit: ExitFn }) 
       const r = btnRect(b);
       const en = btnEnabled(b);
       const hovered = en && i === hov;
-
-      const connKey = b.qkey + "_" + b.gate;
-      if (BTN_CONNECTS[connKey]) {
-        const lc = en ? C_CONN : C_CONN_OFF;
-        const w = en ? CW : CW_OFF;
-        const bx = b.center.x;
-        if (b.qkey === "both") {
-          const btnBottom = r.y + BTN_S;
-          const xxTop = { x: spKey("XX").x, y: spKey("XX").y - DR };
-          cable([{ x: bx, y: btnBottom }, { x: bx, y: xxTop.y }], lc, w);
-          for (const arm of [
-            ["XZ", "XI", -1],
-            ["ZX", "IX", 1],
-          ] as [string, string, number][]) {
-            const midTop = { x: spKey(arm[0]).x, y: spKey(arm[0]).y - DR };
-            const endTop = { x: spKey(arm[1]).x, y: spKey(arm[1]).y - DR };
-            const sign = arm[2];
-            const cp = spKey(arm[1]);
-            const notchA = { x: endTop.x + sign * DR, y: endTop.y };
-            const notchB = { x: notchA.x, y: notchA.y + DR };
-            cable([xxTop, midTop, endTop, notchA, notchB, cp], lc, w);
-          }
-        } else {
-          const startY = r.y;
-          const cells = BTN_CONNECTS[connKey];
-          // Route straight up from the button into the first (button-aligned)
-          // cell's bottom corner, then follow the diamond lattice edges
-          // (diagonals) from cell to cell. Consecutive cells are lattice
-          // neighbours, so centre-to-centre segments lie on the grid.
-          const first = spKey(cells[0]);
-          const entryY = first.y + DR; // bottom corner of the first diamond
-          const pts: Vec[] = [
-            { x: bx, y: startY },
-            { x: bx, y: entryY },
-          ];
-          if (Math.abs(bx - first.x) > 0.5) pts.push({ x: first.x, y: entryY });
-          pts.push(first);
-          for (let ci = 1; ci < cells.length; ci++) pts.push(spKey(cells[ci]));
-          cable(pts, lc, w);
-        }
-      }
 
       const bg = hovered ? C_BTN_HOV : en ? C_BTN_ON : C_BTN_OFF;
       fillRect(r.x, r.y, r.w, r.h, bg);
