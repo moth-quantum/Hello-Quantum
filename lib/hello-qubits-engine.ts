@@ -491,75 +491,52 @@ export function createGame(canvas: HTMLCanvasElement, opts: { onExit: ExitFn }) 
   // acts on. Drawn BEFORE the board so cables run behind the translucent
   // diamonds (dimmed inside the lattice, bright on the button stubs) — matching
   // the reference sketch. Mirror-symmetric about x = BX.
+  // Static white wiring. Crossing-free and mirror-symmetric about x = BX:
+  // vertical drops into entry cells, outside elbows for the offset Z buttons,
+  // and CZ arms that hug the outer lattice edge (tangent to the diamonds via
+  // their outer vertices) so no cable cuts through the interior.
   function drawConnectors() {
-    const topV = (k: string) => ({ x: spKey(k).x, y: spKey(k).y - DR });
+    const bottom = (k: string) => ({ x: spKey(k).x, y: spKey(k).y + DR });
+    const leftV = (k: string) => ({ x: spKey(k).x - DR, y: spKey(k).y });
+    const rightV = (k: string) => ({ x: spKey(k).x + DR, y: spKey(k).y });
+    const btnTop = (g: string, q: string) => {
+      const c = btnCenterOf(g, q);
+      return { x: c.x, y: c.y - BTN_S / 2 };
+    };
 
-    // CZ fan-out: vertical stub down to XX, then two notched arms along the
-    // top-left / top-right outer edges into XI and IX.
+    // X: straight up into the Z-basis entry cell.
+    cable([btnTop("x", "0"), bottom("ZI")], C_CABLE, CWID);
+    cable([btnTop("x", "1"), bottom("IZ")], C_CABLE, CWID);
+    // H: straight up into the X-basis entry cell.
+    cable([btnTop("h", "0"), bottom("XI")], C_CABLE, CWID);
+    cable([btnTop("h", "1"), bottom("IX")], C_CABLE, CWID);
+    // Z: up the outside, elbow into the entry cell's outer vertex.
+    {
+      const b = btnTop("z", "0");
+      const v = leftV("XI");
+      cable([b, { x: b.x, y: v.y }, v], C_CABLE, CWID);
+    }
+    {
+      const b = btnTop("z", "1");
+      const v = rightV("IX");
+      cable([b, { x: b.x, y: v.y }, v], C_CABLE, CWID);
+    }
+
+    // CZ fan-out: center stem + staple bracket above the board, then a straight
+    // diagonal arm down each outer edge (through cell outer vertices, tangent to
+    // the diamonds) into XI / IX.
     const czB = { x: BX, y: CZ_BTN_Y + BTN_S / 2 };
-    const xxTop = topV("XX");
-    cable([czB, { x: BX, y: xxTop.y }], C_CABLE, CWID);
-    for (const arm of [
-      ["XZ", "XI", -1],
-      ["ZX", "IX", 1],
-    ] as [string, string, number][]) {
-      const midTop = topV(arm[0]);
-      const endTop = topV(arm[1]);
-      const sign = arm[2];
-      const cp = spKey(arm[1]);
-      const nA = { x: endTop.x + sign * DR, y: endTop.y };
-      const nB = { x: nA.x, y: nA.y + DR };
-      cable([xxTop, midTop, endTop, nA, nB, cp], C_CABLE, CWID);
-    }
-
-    // Single-qubit gate cables. Each ascends from its button through the entry
-    // cell and along the top vertices of the remaining cells it flips, then
-    // notches into the far cell. farSign = which side the notch opens.
-    function edgeChain(bc: Vec, keys: string[], farSign: number) {
-      const entry = spKey(keys[0]);
-      const pts: Vec[] = [{ x: bc.x, y: bc.y - BTN_S / 2 }];
-      const railY = entry.y + DR + 16;
-      if (Math.abs(bc.x - entry.x) > 1) {
-        pts.push({ x: bc.x, y: railY });
-        pts.push({ x: entry.x, y: railY });
-      }
-      pts.push({ x: entry.x, y: entry.y + DR }); // entry bottom vertex
-      pts.push({ x: entry.x, y: entry.y - DR }); // through entry to its top vertex
-      for (let i = 1; i < keys.length; i++) {
-        const c = spKey(keys[i]);
-        if (i < keys.length - 1) {
-          pts.push({ x: c.x, y: c.y - DR }); // top vertex of middle cells
-        } else {
-          const t = { x: c.x, y: c.y - DR };
-          pts.push(t, { x: t.x + farSign * DR, y: t.y }, { x: t.x + farSign * DR, y: c.y }, { x: c.x, y: c.y });
-        }
-      }
-      cable(pts, C_CABLE, CWID);
-    }
-
-    // H cable: connect the button up into the entry cell, then along the shared
-    // edge to its swap partner.
-    function hChain(bc: Vec, entryKey: string, partnerKey: string) {
-      const entry = spKey(entryKey);
-      const partner = spKey(partnerKey);
-      const pts: Vec[] = [{ x: bc.x, y: bc.y - BTN_S / 2 }];
-      const railY = entry.y + DR + 16;
-      if (Math.abs(bc.x - entry.x) > 1) {
-        pts.push({ x: bc.x, y: railY });
-        pts.push({ x: entry.x, y: railY });
-      }
-      pts.push({ x: entry.x, y: entry.y + DR }, { x: entry.x, y: entry.y }, { x: partner.x, y: partner.y });
-      cable(pts, C_CABLE, CWID);
-    }
-
-    // qubit 0 (left)
-    edgeChain(btnCenterOf("x", "0"), ["ZI", "ZZ", "ZX"], 1);
-    edgeChain(btnCenterOf("z", "0"), ["XI", "XZ", "XX"], 1);
-    hChain(btnCenterOf("h", "0"), "XI", "ZI");
-    // qubit 1 (right) — mirror
-    edgeChain(btnCenterOf("x", "1"), ["IZ", "ZZ", "XZ"], -1);
-    edgeChain(btnCenterOf("z", "1"), ["IX", "ZX", "XX"], -1);
-    hChain(btnCenterOf("h", "1"), "IX", "IZ");
+    const barY = spKey("XX").y - DR - 6; // just above XX's top vertex
+    cable(
+      [czB, { x: BX, y: barY }, { x: leftV("XX").x, y: barY }, leftV("XX"), leftV("XZ"), leftV("XI")],
+      C_CABLE,
+      CWID,
+    );
+    cable(
+      [czB, { x: BX, y: barY }, { x: rightV("XX").x, y: barY }, rightV("XX"), rightV("ZX"), rightV("IX")],
+      C_CABLE,
+      CWID,
+    );
   }
 
   function btnCenterOf(gate: string, qkey: string): Vec {
