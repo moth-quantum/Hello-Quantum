@@ -59,6 +59,8 @@ const C_CELL = "rgba(102,102,191,0.80)";
 const C_CELL_BG = "rgba(71,71,148,0.50)";
 const C_EDGE = "rgba(179,179,255,0.35)";
 const CW = 6; // cable width when enabled (CZ animation)
+const C_CABLE = "rgb(236,238,248)"; // static wiring color (dimmed behind translucent cells)
+const CWID = 7; // static cable width
 const C_LBL = "rgb(217,224,255)";
 const C_WIN = "rgb(89,255,140)";
 const C_BTN_ON = "rgb(242,242,255)";
@@ -485,6 +487,86 @@ export function createGame(canvas: HTMLCanvasElement, opts: { onExit: ExitFn }) 
   }
 
   // -- Draw sections --------------------------------------------------------
+  // Static white wiring: each gate button's cable traces the chain of cells it
+  // acts on. Drawn BEFORE the board so cables run behind the translucent
+  // diamonds (dimmed inside the lattice, bright on the button stubs) — matching
+  // the reference sketch. Mirror-symmetric about x = BX.
+  function drawConnectors() {
+    const topV = (k: string) => ({ x: spKey(k).x, y: spKey(k).y - DR });
+
+    // CZ fan-out: vertical stub down to XX, then two notched arms along the
+    // top-left / top-right outer edges into XI and IX.
+    const czB = { x: BX, y: CZ_BTN_Y + BTN_S / 2 };
+    const xxTop = topV("XX");
+    cable([czB, { x: BX, y: xxTop.y }], C_CABLE, CWID);
+    for (const arm of [
+      ["XZ", "XI", -1],
+      ["ZX", "IX", 1],
+    ] as [string, string, number][]) {
+      const midTop = topV(arm[0]);
+      const endTop = topV(arm[1]);
+      const sign = arm[2];
+      const cp = spKey(arm[1]);
+      const nA = { x: endTop.x + sign * DR, y: endTop.y };
+      const nB = { x: nA.x, y: nA.y + DR };
+      cable([xxTop, midTop, endTop, nA, nB, cp], C_CABLE, CWID);
+    }
+
+    // Single-qubit gate cables. Each ascends from its button through the entry
+    // cell and along the top vertices of the remaining cells it flips, then
+    // notches into the far cell. farSign = which side the notch opens.
+    function edgeChain(bc: Vec, keys: string[], farSign: number) {
+      const entry = spKey(keys[0]);
+      const pts: Vec[] = [{ x: bc.x, y: bc.y - BTN_S / 2 }];
+      const railY = entry.y + DR + 16;
+      if (Math.abs(bc.x - entry.x) > 1) {
+        pts.push({ x: bc.x, y: railY });
+        pts.push({ x: entry.x, y: railY });
+      }
+      pts.push({ x: entry.x, y: entry.y + DR }); // entry bottom vertex
+      pts.push({ x: entry.x, y: entry.y - DR }); // through entry to its top vertex
+      for (let i = 1; i < keys.length; i++) {
+        const c = spKey(keys[i]);
+        if (i < keys.length - 1) {
+          pts.push({ x: c.x, y: c.y - DR }); // top vertex of middle cells
+        } else {
+          const t = { x: c.x, y: c.y - DR };
+          pts.push(t, { x: t.x + farSign * DR, y: t.y }, { x: t.x + farSign * DR, y: c.y }, { x: c.x, y: c.y });
+        }
+      }
+      cable(pts, C_CABLE, CWID);
+    }
+
+    // H cable: connect the button up into the entry cell, then along the shared
+    // edge to its swap partner.
+    function hChain(bc: Vec, entryKey: string, partnerKey: string) {
+      const entry = spKey(entryKey);
+      const partner = spKey(partnerKey);
+      const pts: Vec[] = [{ x: bc.x, y: bc.y - BTN_S / 2 }];
+      const railY = entry.y + DR + 16;
+      if (Math.abs(bc.x - entry.x) > 1) {
+        pts.push({ x: bc.x, y: railY });
+        pts.push({ x: entry.x, y: railY });
+      }
+      pts.push({ x: entry.x, y: entry.y + DR }, { x: entry.x, y: entry.y }, { x: partner.x, y: partner.y });
+      cable(pts, C_CABLE, CWID);
+    }
+
+    // qubit 0 (left)
+    edgeChain(btnCenterOf("x", "0"), ["ZI", "ZZ", "ZX"], 1);
+    edgeChain(btnCenterOf("z", "0"), ["XI", "XZ", "XX"], 1);
+    hChain(btnCenterOf("h", "0"), "XI", "ZI");
+    // qubit 1 (right) — mirror
+    edgeChain(btnCenterOf("x", "1"), ["IZ", "ZZ", "XZ"], -1);
+    edgeChain(btnCenterOf("z", "1"), ["IX", "ZX", "XX"], -1);
+    hChain(btnCenterOf("h", "1"), "IX", "IZ");
+  }
+
+  function btnCenterOf(gate: string, qkey: string): Vec {
+    const b = btns.find((x) => x.gate === gate && x.qkey === qkey);
+    return b ? b.center : { x: BX, y: BTN_Y };
+  }
+
   function drawBoard() {
     const goal = puzzles[pidx].goal;
 
@@ -493,6 +575,8 @@ export function createGame(canvas: HTMLCanvasElement, opts: { onExit: ExitFn }) 
     }
 
     for (const [a, b] of EDGES) line(spKey(a), spKey(b), C_EDGE, 1.2);
+
+    drawConnectors();
 
     for (const pauli of visible) {
       const pos = spKey(pauli);
