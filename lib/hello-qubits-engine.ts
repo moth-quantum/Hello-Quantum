@@ -59,9 +59,9 @@ const C_CELL = "rgba(102,102,191,0.80)";
 const C_CELL_BG = "rgba(71,71,148,0.50)";
 const C_EDGE = "rgba(179,179,255,0.35)";
 const C_CONN = "rgba(255,255,255,0.92)"; // active button cable (thick white)
-const C_CONN_OFF = "rgba(204,204,255,0.14)"; // inactive button cable
+const C_CONN_OFF = "rgba(204,204,255,0.22)"; // inactive button cable
 const CW = 6; // cable width when enabled
-const CW_OFF = 3; // cable width when disabled
+const CW_OFF = 3.5; // cable width when disabled
 const C_LBL = "rgb(217,224,255)";
 const C_WIN = "rgb(89,255,140)";
 const C_BTN_ON = "rgb(242,242,255)";
@@ -111,10 +111,10 @@ const CZ_SWAP_PAIRS: [string, string][] = [
 const BTN_CONNECTS: Record<string, string[]> = {
   "0_z": ["XI", "XZ", "XX"],
   "0_x": ["ZI", "ZZ", "ZX"],
-  "0_h": ["ZI", "XI"],
+  "0_h": ["XI", "ZI"],
   "1_z": ["IX", "ZX", "XX"],
   "1_x": ["IZ", "ZZ", "XZ"],
-  "1_h": ["IZ", "IX"],
+  "1_h": ["IX", "IZ"],
   both_cz: ["XZ", "ZX"],
 };
 
@@ -644,32 +644,20 @@ export function createGame(canvas: HTMLCanvasElement, opts: { onExit: ExitFn }) 
         } else {
           const startY = r.y;
           const cells = BTN_CONNECTS[connKey];
-          const juncY = BY + 1.5 * CELL + DR;
-          if (b.gate === "z" || b.gate === "x") {
-            const first = spKey(cells[0]);
-            const pts: Vec[] = [
-              { x: bx, y: startY },
-              { x: bx, y: juncY },
-              { x: first.x, y: juncY },
-              first,
-            ];
-            for (let ci = 1; ci < cells.length; ci++) pts.push(spKey(cells[ci]));
-            cable(pts, lc, w);
-          } else {
-            for (const tp of cells) {
-              const cp = spKey(tp);
-              cable(
-                [
-                  { x: bx, y: startY },
-                  { x: bx, y: juncY },
-                  { x: cp.x, y: juncY },
-                  cp,
-                ],
-                lc,
-                w,
-              );
-            }
-          }
+          // Route straight up from the button into the first (button-aligned)
+          // cell's bottom corner, then follow the diamond lattice edges
+          // (diagonals) from cell to cell. Consecutive cells are lattice
+          // neighbours, so centre-to-centre segments lie on the grid.
+          const first = spKey(cells[0]);
+          const entryY = first.y + DR; // bottom corner of the first diamond
+          const pts: Vec[] = [
+            { x: bx, y: startY },
+            { x: bx, y: entryY },
+          ];
+          if (Math.abs(bx - first.x) > 0.5) pts.push({ x: first.x, y: entryY });
+          pts.push(first);
+          for (let ci = 1; ci < cells.length; ci++) pts.push(spKey(cells[ci]));
+          cable(pts, lc, w);
         }
       }
 
