@@ -504,13 +504,15 @@ export function createGame(canvas: HTMLCanvasElement, opts: { onExit: ExitFn }) 
       return { x: c.x, y: c.y - BTN_S / 2 };
     };
 
-    // X: straight up into the Z-basis entry cell.
+    const topV = (k: string) => ({ x: spKey(k).x, y: spKey(k).y - DR });
+
+    // X: straight up into the Z-basis entry cell (bottom vertex).
     cable([btnTop("x", "0"), bottom("ZI")], C_CABLE, CWID);
     cable([btnTop("x", "1"), bottom("IZ")], C_CABLE, CWID);
-    // H: straight up into the X-basis entry cell.
+    // H: straight up into the X-basis entry cell (bottom vertex).
     cable([btnTop("h", "0"), bottom("XI")], C_CABLE, CWID);
     cable([btnTop("h", "1"), bottom("IX")], C_CABLE, CWID);
-    // Z: up the outside, elbow into the entry cell's outer vertex.
+    // Z: up the outside, square elbow into the entry cell's outer side vertex.
     {
       const b = btnTop("z", "0");
       const v = leftV("XI");
@@ -522,21 +524,14 @@ export function createGame(canvas: HTMLCanvasElement, opts: { onExit: ExitFn }) 
       cable([b, { x: b.x, y: v.y }, v], C_CABLE, CWID);
     }
 
-    // CZ fan-out: center stem + staple bracket above the board, then a straight
-    // diagonal arm down each outer edge (through cell outer vertices, tangent to
-    // the diamonds) into XI / IX.
+    // CZ fan-out: a short center stem down from the button, then one diagonal arm
+    // hugging each upper lattice edge (top vertices XX -> XZ -> XI on the left,
+    // XX -> ZX -> IX on the right). Mirror-symmetric, and no cable crosses the
+    // interior.
     const czB = { x: BX, y: CZ_BTN_Y + BTN_S / 2 };
-    const barY = spKey("XX").y - DR - 6; // just above XX's top vertex
-    cable(
-      [czB, { x: BX, y: barY }, { x: leftV("XX").x, y: barY }, leftV("XX"), leftV("XZ"), leftV("XI")],
-      C_CABLE,
-      CWID,
-    );
-    cable(
-      [czB, { x: BX, y: barY }, { x: rightV("XX").x, y: barY }, rightV("XX"), rightV("ZX"), rightV("IX")],
-      C_CABLE,
-      CWID,
-    );
+    const apex = topV("XX");
+    cable([czB, { x: BX, y: apex.y }, apex, topV("XZ"), topV("XI")], C_CABLE, CWID);
+    cable([czB, { x: BX, y: apex.y }, apex, topV("ZX"), topV("IX")], C_CABLE, CWID);
   }
 
   function btnCenterOf(gate: string, qkey: string): Vec {
@@ -553,18 +548,26 @@ export function createGame(canvas: HTMLCanvasElement, opts: { onExit: ExitFn }) 
 
     for (const [a, b] of EDGES) line(spKey(a), spKey(b), C_EDGE, 1.2);
 
+    // Value diamonds (fill + outline) first, so the bright wiring drawn next
+    // sits on top of the translucent cells instead of being painted over.
+    for (const pauli of visible) {
+      const pos = spKey(pauli);
+      const isGoal = Object.prototype.hasOwnProperty.call(goal, pauli);
+      const oc = isGoal ? C_WIN : "rgba(191,191,255,0.9)";
+      const ow = isGoal ? 3.0 : 1.8;
+      drawDiamond(pos, DR, C_CELL, oc, ow);
+    }
+
+    // Bright wiring on top of the diamonds. Every endpoint is a cell vertex, so
+    // the cables stop at the diamond edges and never cover the circles.
     drawConnectors();
 
+    // Circles + labels on top of the wiring.
     for (const pauli of visible) {
       const pos = spKey(pauli);
       const rv = rho[pauli] ?? 0;
       const prob = (1 - rv) / 2;
-      const isGoal = Object.prototype.hasOwnProperty.call(goal, pauli);
       const animating = animPaulis.includes(pauli) || flipPaulis.includes(pauli) || czPaulis.includes(pauli);
-
-      const oc = isGoal ? C_WIN : "rgba(191,191,255,0.9)";
-      const ow = isGoal ? 3.0 : 1.8;
-      drawDiamond(pos, DR, C_CELL, oc, ow);
 
       if (!animating) {
         circle(pos, CR, grayscale(prob));
